@@ -1,6 +1,7 @@
 name: CI
 on:
-  cron: */5 * * * *
+  schedule:
+   - cron: "*/5 * * * *" 
   push:
     branches: [main]
   workflow_dispatch:
