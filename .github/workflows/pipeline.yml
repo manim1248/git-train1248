@@ -1,0 +1,52 @@
+name: Pipeline
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: echo "linting… OK"        # stand-in for a real linter (out of scope)
+
+  test:
+    needs: lint                        # waits for lint
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ['18', '20', '22']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - run: echo "tests on node ${{ matrix.node }} … OK"
+
+  build:
+    needs: lint                        # independent of test → runs parallel with it
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: echo "building… OK" > build.txt
+      - name: Publish build output
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-artifact
+          path: build.txt
+
+  deploy:
+    needs: [test, build]               # waits for both (and transitively lint)
+    runs-on: ubuntu-latest
+    environment: demo
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: build-artifact
+      - name: Deploy
+        run: cat build.txt
